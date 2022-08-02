@@ -1,0 +1,8 @@
+FROM gcr.io/datadoghq/agent:7
+
+COPY tools/datadog/datadog.yaml /etc/datadog-agent/datadog.yaml
+COPY tools/redpanda/configuration.yaml /etc/datadog-agent/conf.d/redpanda.d/conf.yaml
+
+LABEL "com.datadoghq.ad.logs"='[{"source": "agent", "service": "datadog_agent"}]'
+
+RUN agent integration install -r -t datadog-redpanda==1.1.0

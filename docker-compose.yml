@@ -1,0 +1,95 @@
+---
+version: "3.7"
+
+services:
+  datadog_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.datadog
+    container_name: datadog_agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    environment:
+      - DD_API_KEY=${DATADOG_API_KEY}
+      - DD_SITE=datadoghq.eu
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_CONTAINER_EXCLUDE_LOGS=name:datadog_agent
+    depends_on:
+      redpanda: { condition: service_healthy }
+    ports:
+      - "8125:8125/udp"
+    networks:
+      - monitoring
+
+  redpanda:
+    image: docker.redpanda.com/vectorized/redpanda:v22.1.4
+    container_name: redpanda
+    networks:
+      - monitoring
+    command:
+      - redpanda start
+      - --overprovisioned
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --kafka-addr 0.0.0.0:9092
+      - --advertise-kafka-addr redpanda:9092
+      - --pandaproxy-addr 0.0.0.0:8082
+      - --advertise-pandaproxy-addr redpanda:8082
+      - --set redpanda.enable_transactions=true
+      - --set redpanda.enable_idempotence=true
+      - --set redpanda.auto_create_topics_enabled=true
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "redpanda", "service": "redpanda_cluster"}]'
+      com.datadoghq.ad.check_names: '["redpanda"]'
+    ports:
+      - 9092:9092
+      - 8081:8081
+      - 8082:8082
+      - 9644:9644
+    healthcheck:
+      {
+        test: curl -f localhost:9644/v1/status/ready,
+        interval: 1s,
+        start_period: 30s,
+      }
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    command: [/app/scripts/producer.py]
+    container_name: producer
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "python", "service": "producer"}]'
+    depends_on:
+      redpanda: { condition: service_healthy }
+    environment:
+      - TOKEN=${TOKEN}
+      - PRODUCE_FREQUENCY=30
+    networks:
+      - monitoring
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    command: [/app/scripts/consumer.py]
+    container_name: consumer
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "python", "service": "consumer"}]'
+    depends_on:
+      redpanda: { condition: service_healthy }
+    environment:
+      - TOKEN=${TOKEN}
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: "bridge"

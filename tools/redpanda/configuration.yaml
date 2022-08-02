@@ -1,0 +1,8 @@
+instances:
+  - openmetrics_endpoint: http://redpanda:9644/metrics
+    use_openmetrics: true
+
+logs:
+  - type: journald
+    source: redpanda
+    container_mode: true
