@@ -1,4 +1,4 @@
-# Using Datadog to Monitor Redpanda
+# Using Datadog to monitor Redpanda
 
 Use this demo to learn how to monitor Redpanda with DataDog.
 
