@@ -2,7 +2,7 @@
 
 Use this demo to learn how to monitor Redpanda with DataDog.
 
-Follow along with [this tutorial on the Redpanda blog](https://redpanda.com/blog/) to put this demo into action. 
+Follow along with [this tutorial on the Redpanda blog](https://redpanda.com/blog/datadog-monitoring-redpanda) to put this demo into action. 
 
 ----------------------
 
